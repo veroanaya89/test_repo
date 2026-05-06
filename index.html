@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StratAlign – KPI & Strategy Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh;font-size:14px}
+  :root{
+    --c-green:#2d7a4f;--c-green-bg:#eaf3de;
+    --c-amber:#c47a0e;--c-amber-bg:#faeeda;
+    --c-red:#c23b3b;--c-red-bg:#fcebeb;
+    --c-blue:#185fa5;--c-blue-bg:#e6f1fb;
+    --c-border:rgba(0,0,0,.1);
+    --c-surface:#fff;--c-surface2:#f7f6f2;--c-surface3:#f0efe9
+  }
+  .app{display:flex;height:100vh;overflow:hidden}
+  .sidebar{width:224px;min-width:224px;background:var(--c-surface);border-right:1px solid var(--c-border);display:flex;flex-direction:column}
+  .logo{padding:20px 18px 16px;font-size:18px;font-weight:600;letter-spacing:-0.5px;border-bottom:1px solid var(--c-border);color:#1a1a1a}
+  .logo span{color:var(--c-blue)}
+  .logo small{display:block;font-size:11px;font-weight:400;color:#888;margin-top:2px;letter-spacing:0}
+  .nav{flex:1;padding:10px 0;overflow-y:auto}
+  .nav-section{padding:14px 18px 4px;font-size:10px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.6px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;font-size:13px;color:#555;border-left:2px solid transparent;transition:all .12s}
+  .nav-item:hover{background:var(--c-surface2);color:#1a1a1a}
+  .nav-item.active{background:var(--c-blue-bg);color:var(--c-blue);border-left-color:var(--c-blue);font-weight:500}
+  .nav-icon{font-size:15px;width:18px;text-align:center}
+  .main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+  .topbar{padding:14px 24px;border-bottom:1px solid var(--c-border);background:var(--c-surface);display:flex;align-items:center;justify-content:space-between;min-height:58px;position:sticky;top:0;z-index:10}
+  .topbar-title{font-size:16px;font-weight:600}
+  .topbar-sub{font-size:12px;color:#888;margin-top:1px}
+  .content{padding:24px;flex:1}
+  .card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:12px;padding:20px}
+  .card-sm{padding:14px 16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .metric-card{background:var(--c-surface2);border-radius:10px;padding:14px 16px;border:1px solid var(--c-border)}
+  .metric-label{font-size:11px;color:#888;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+  .metric-value{font-size:26px;font-weight:600;letter-spacing:-0.5px}
+  .metric-delta{font-size:11px;margin-top:4px}
+  .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+  .status-green{background:var(--c-green)}.status-amber{background:var(--c-amber)}.status-red{background:var(--c-red)}
+  .badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+  .badge-green{background:var(--c-green-bg);color:var(--c-green)}
+  .badge-amber{background:var(--c-amber-bg);color:var(--c-amber)}
+  .badge-red{background:var(--c-red-bg);color:var(--c-red)}
+  .badge-blue{background:var(--c-blue-bg);color:var(--c-blue)}
+  .badge-gray{background:#f0efe9;color:#666}
+  .kpi-row{display:flex;align-items:center;padding:11px 0;border-bottom:1px solid var(--c-border);gap:12px;cursor:pointer;transition:background .1s;border-radius:6px}
+  .kpi-row:last-child{border-bottom:none}
+  .kpi-row:hover{background:var(--c-surface2);padding:11px 8px;margin:0 -8px}
+  .kpi-name{font-size:13px;font-weight:500;flex:1}
+  .kpi-meta{font-size:11px;color:#888;margin-top:2px}
+  .kpi-val{font-size:13px;font-weight:600;text-align:right}
+  .kpi-target-lbl{font-size:11px;color:#999;text-align:right}
+  .progress-bar{height:5px;background:#e8e7e1;border-radius:3px;overflow:hidden}
+  .progress-fill{height:100%;border-radius:3px;transition:width .4s}
+  .progress-green{background:var(--c-green)}.progress-amber{background:var(--c-amber)}.progress-red{background:var(--c-red)}
+  .section-title{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.4px;margin-bottom:14px}
+  .btn{padding:7px 14px;border-radius:7px;border:1px solid var(--c-border);background:var(--c-surface);cursor:pointer;font-size:12px;font-weight:500;color:#333;transition:all .12s;font-family:inherit}
+  .btn:hover{background:var(--c-surface2);border-color:#bbb}
+  .btn-primary{background:var(--c-blue);color:#fff;border-color:var(--c-blue)}
+  .btn-primary:hover{background:#1453a0}
+  .btn-sm{padding:5px 11px;font-size:11px}
+  .btn-danger{background:var(--c-red-bg);color:var(--c-red);border-color:#f0b0b0}
+  input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--c-border);border-radius:7px;font-size:13px;background:#fff;color:#1a1a1a;font-family:inherit;outline:none;transition:border .15s;-webkit-appearance:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--c-blue);box-shadow:0 0 0 3px rgba(24,95,165,.08)}
+  label{display:block;font-size:12px;font-weight:500;color:#555;margin-bottom:4px}
+  .form-group{margin-bottom:14px}
+  .row{display:flex;gap:10px;align-items:center}
+  .scorecard-header{background:var(--c-blue-bg);border-radius:8px;padding:12px 16px;margin-bottom:12px;border-left:3px solid var(--c-blue)}
+  .scorecard-header h3{font-size:13px;font-weight:600;color:var(--c-blue)}
+  .scorecard-header p{font-size:11px;color:var(--c-blue);opacity:.75;margin-top:2px}
+  .tab-bar{display:flex;gap:0;border-bottom:1px solid var(--c-border);margin-bottom:20px}
+  .tab{padding:9px 18px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#777;transition:all .15s;font-weight:400}
+  .tab:hover{color:#333}
+  .tab.active{color:var(--c-blue);border-bottom-color:var(--c-blue);font-weight:500}
+  .chart-wrap{position:relative;width:100%;height:200px;margin-top:8px}
+  .trend-up{color:var(--c-green)}.trend-down{color:var(--c-red)}.trend-flat{color:var(--c-amber)}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(2px)}
+  .modal{background:#fff;border-radius:14px;padding:26px;width:520px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+  .modal-title{font-size:16px;font-weight:600;margin-bottom:4px}
+  .hidden{display:none!important}
+  .initiative-bar{height:8px;background:#e8e7e1;border-radius:4px;overflow:hidden;margin:8px 0}
+  .divider{height:1px;background:var(--c-border);margin:16px 0}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11px;background:var(--c-surface2);border:1px solid var(--c-border);cursor:pointer;transition:all .12s;margin:3px}
+  .chip.active{background:var(--c-blue-bg);border-color:var(--c-blue);color:var(--c-blue)}
+  .empty-state{text-align:center;padding:48px;color:#aaa;font-size:13px}
+  .toast{position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:#fff;padding:11px 20px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;pointer-events:none}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#ddd;border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="logo">Strat<span>Align</span><small>Strategy & KPI Platform</small></div>
+    <nav class="nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-icon">🏠</span>Dashboard</div>
+      <div class="nav-item" onclick="nav('scorecards')"><span class="nav-icon">📋</span>Scorecards</div>
+      <div class="nav-section">Strategy</div>
+      <div class="nav-item" onclick="nav('objectives')"><span class="nav-icon">🎯</span>Objectives</div>
+      <div class="nav-item" onclick="nav('kpis')"><span class="nav-icon">📊</span>All KPIs</div>
+      <div class="nav-item" onclick="nav('initiatives')"><span class="nav-icon">⚡</span>Initiatives</div>
+      <div class="nav-section">My Work</div>
+      <div class="nav-item" onclick="nav('update')"><span class="nav-icon">✏️</span>Update My KPI</div>
+      <div class="nav-item" onclick="nav('create')"><span class="nav-icon">➕</span>Create New KPI</div>
+    </nav>
+    <div style="padding:14px 16px;border-top:1px solid var(--c-border);font-size:11px;color:#aaa">
+      <div style="font-weight:500;color:#666;margin-bottom:2px">Current Period</div>
+      May 2026 · Q2
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">Executive Dashboard</div>
+        <div class="topbar-sub" id="page-sub">May 2026 · Q2 Performance Review</div>
+      </div>
+      <div class="row">
+        <button class="btn btn-sm" onclick="nav('update')">+ Update KPI</button>
+        <button class="btn btn-sm" onclick="nav('create')">+ New KPI</button>
+        <button class="btn btn-primary btn-sm" onclick="nav('kpis')">View All KPIs</button>
+      </div>
+    </div>
+    <div class="content" id="page-content"></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-overlay" onclick="maybeCloseModal(event)">
+  <div class="modal" id="modal-body"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const state = {
+  page: 'dashboard',
+  filter: 0,
+  objectives: [
+    {id:1,name:'Grow Revenue & Market Share',theme:'Financial',desc:'Increase ARR, improve sales efficiency, and expand market penetration'},
+    {id:2,name:'Improve Customer Experience',theme:'Customer',desc:'Raise NPS, reduce resolution time, and deepen customer relationships'},
+    {id:3,name:'Operational Excellence',theme:'Internal Process',desc:'Improve delivery predictability, system reliability, and process efficiency'},
+    {id:4,name:'Build High-Performance Culture',theme:'Learning & Growth',desc:'Drive engagement, retention, and capability development across the org'}
+  ],
+  kpis: [
+    {id:1,name:'Annual Recurring Revenue',dept:'Finance',owner:'Sarah Chen',type:'Simple',status:'green',actual:4.2,target:4.0,unit:'M',prefix:'$',pct:105,history:[3.1,3.4,3.7,3.8,4.0,4.2],objectiveId:1,initiative:'Q2 Growth Sprint',notes:'Exceeded Q2 target driven by enterprise upsells.'},
+    {id:2,name:'Customer Acquisition Cost',dept:'Marketing',owner:'James Park',type:'Calculated',status:'green',actual:142,target:160,unit:'',prefix:'$',pct:112,history:[198,185,170,162,155,142],objectiveId:1,initiative:'Q2 Growth Sprint',notes:'Efficiency gains from automated top-of-funnel.'},
+    {id:3,name:'Net Promoter Score',dept:'Customer Success',owner:'Maria Lopez',type:'Simple',status:'amber',actual:38,target:45,unit:'pts',prefix:'',pct:84,history:[32,35,36,37,38,38],objectiveId:2,initiative:'CX Redesign',notes:'Plateau in last 3 periods. Onboarding redesign underway.'},
+    {id:4,name:'Ticket Resolution Time',dept:'Support',owner:'David Kim',type:'Lagging',status:'red',actual:28,target:18,unit:'hrs',prefix:'',pct:36,history:[24,25,27,28,27,28],objectiveId:2,initiative:'Support Ops Overhaul',notes:'Volume spike impacting SLA. Additional headcount approved.'},
+    {id:5,name:'On-Time Project Delivery',dept:'Engineering',owner:'Aisha Patel',type:'Leading',status:'green',actual:87,target:85,unit:'%',prefix:'',pct:102,history:[72,75,78,82,85,87],objectiveId:3,initiative:'Delivery Program',notes:'New sprint planning process showing strong results.'},
+    {id:6,name:'Employee Engagement Score',dept:'People Ops',owner:'Tom Wilson',type:'Simple',status:'amber',actual:71,target:80,unit:'%',prefix:'',pct:89,history:[65,67,68,70,71,71],objectiveId:4,initiative:'Culture Initiative',notes:'Improvement stalling. Manager training rolling out Q3.'},
+    {id:7,name:'Sales Pipeline Coverage',dept:'Sales',owner:'Rachel Moore',type:'Aggregated',status:'green',actual:3.4,target:3.0,unit:'x',prefix:'',pct:113,history:[2.1,2.4,2.7,3.0,3.2,3.4],objectiveId:1,initiative:'Q2 Growth Sprint',notes:'Strong outbound performance in April.'},
+    {id:8,name:'System Uptime',dept:'Engineering',owner:'Aisha Patel',type:'Simple',status:'green',actual:99.7,target:99.5,unit:'%',prefix:'',pct:100,history:[99.1,99.3,99.4,99.5,99.6,99.7],objectiveId:3,initiative:null,notes:'Stable. Infrastructure upgrade completed last month.'}
+  ],
+  initiatives: [
+    {id:1,name:'Q2 Growth Sprint',status:'green',owner:'Sarah Chen',dept:'Finance',completion:72,kpis:[1,2,7],due:'Jun 30, 2026'},
+    {id:2,name:'CX Redesign',status:'amber',owner:'Maria Lopez',dept:'Customer Success',completion:45,kpis:[3],due:'Aug 15, 2026'},
+    {id:3,name:'Support Ops Overhaul',status:'red',owner:'David Kim',dept:'Support',completion:28,kpis:[4],due:'Jul 1, 2026'},
+    {id:4,name:'Delivery Program',status:'green',owner:'Aisha Patel',dept:'Engineering',completion:87,kpis:[5],due:'May 31, 2026'},
+    {id:5,name:'Culture Initiative',status:'amber',owner:'Tom Wilson',dept:'People Ops',completion:55,kpis:[6],due:'Sep 30, 2026'}
+  ]
+};
+
+// Helpers
+const sc = s => s==='green'?'badge-green':s==='amber'?'badge-amber':'badge-red';
+const sl = s => s==='green'?'On Target':s==='amber'?'At Risk':'Off Target';
+const dc = s => 'status-'+s;
+const fmt = k => k.prefix+k.actual+k.unit;
+const fmtT = k => k.prefix+k.target+k.unit;
+
+function nav(page){
+  state.page=page;
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.classList.toggle('active', n.getAttribute('onclick')===`nav('${page}')`);
+  });
+  const titles={dashboard:'Executive Dashboard',scorecards:'Scorecards',objectives:'Strategic Objectives',kpis:'All KPIs',update:'Update My KPI',initiatives:'Initiatives',create:'Create New KPI'};
+  document.getElementById('page-title').textContent=titles[page]||page;
+  document.getElementById('page-content').innerHTML = ({
+    dashboard:renderDashboard,scorecards:renderScorecards,objectives:renderObjectives,
+    kpis:renderKPIs,update:renderUpdate,initiatives:renderInitiatives,create:renderCreate
+  }[page]||renderDashboard)();
+  setTimeout(()=>{
+    if(page==='dashboard')initDashCharts();
+    if(page==='kpis')initSparks();
+  },80);
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────
+function renderDashboard(){
+  const g=state.kpis.filter(k=>k.status==='green').length;
+  const a=state.kpis.filter(k=>k.status==='amber').length;
+  const r=state.kpis.filter(k=>k.status==='red').length;
+  const avg=Math.round(state.kpis.reduce((s,k)=>s+k.pct,0)/state.kpis.length);
+  return `
+<div class="grid4" style="margin-bottom:20px">
+  <div class="metric-card"><div class="metric-label">Total KPIs</div><div class="metric-value">${state.kpis.length}</div><div class="metric-delta" style="color:#888">${state.objectives.length} objectives</div></div>
+  <div class="metric-card"><div class="metric-label">On Target</div><div class="metric-value trend-up">${g}</div><div class="metric-delta trend-up">▲ ${Math.round(g/state.kpis.length*100)}% of portfolio</div></div>
+  <div class="metric-card"><div class="metric-label">At Risk</div><div class="metric-value trend-flat">${a}</div><div class="metric-delta trend-flat">${a} KPI${a!==1?'s':''} need attention</div></div>
+  <div class="metric-card"><div class="metric-label">Off Target</div><div class="metric-value trend-down">${r}</div><div class="metric-delta trend-down">Immediate action needed</div></div>
+</div>
+<div class="grid2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="section-title">Portfolio Status</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <span class="badge badge-green">● ${g} On Target</span>
+      <span class="badge badge-amber">● ${a} At Risk</span>
+      <span class="badge badge-red">● ${r} Off Target</span>
+    </div>
+    <div class="chart-wrap" style="height:180px"><canvas id="statusChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="section-title">Performance by Objective</div>
+    <div class="chart-wrap" style="height:180px"><canvas id="objChart"></canvas></div>
+  </div>
+</div>
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div class="section-title" style="margin-bottom:0">KPI Highlights</div>
+    <button class="btn btn-sm" onclick="nav('kpis')">View all KPIs →</button>
+  </div>
+  ${state.kpis.slice(0,6).map(k=>`
+  <div class="kpi-row" onclick="openKPI(${k.id})">
+    <span class="status-dot ${dc(k.status)}"></span>
+    <div style="flex:1"><div class="kpi-name">${k.name}</div><div class="kpi-meta">${k.dept} · ${k.owner}</div></div>
+    <div style="min-width:100px">
+      <div class="progress-bar"><div class="progress-fill progress-${k.status}" style="width:${Math.min(k.pct,100)}%"></div></div>
+      <div style="font-size:10px;color:#999;margin-top:2px">${k.pct}% of target</div>
+    </div>
+    <div style="text-align:right;min-width:75px">
+      <div class="kpi-val">${fmt(k)}</div>
+      <div class="kpi-target-lbl">/ ${fmtT(k)}</div>
+    </div>
+    <span class="badge ${sc(k.status)}">${sl(k.status)}</span>
+  </div>`).join('')}
+</div>`;
+}
+
+function initDashCharts(){
+  const g=state.kpis.filter(k=>k.status==='green').length;
+  const a=state.kpis.filter(k=>k.status==='amber').length;
+  const r=state.kpis.filter(k=>k.status==='red').length;
+  const sc2=document.getElementById('statusChart');
+  if(sc2&&window.Chart){
+    new Chart(sc2,{type:'doughnut',data:{labels:['On Target','At Risk','Off Target'],datasets:[{data:[g,a,r],backgroundColor:['#2d7a4f','#c47a0e','#c23b3b'],borderWidth:2,borderColor:'#fff',hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{size:12},padding:12,usePointStyle:true}}}}});
+  }
+  const oc=document.getElementById('objChart');
+  if(oc&&window.Chart){
+    const data=state.objectives.map(o=>{const ks=state.kpis.filter(k=>k.objectiveId===o.id);return ks.length?Math.round(ks.reduce((s,k)=>s+k.pct,0)/ks.length):0});
+    new Chart(oc,{type:'bar',data:{labels:state.objectives.map(o=>o.name.split(' ').slice(0,2).join(' ')),datasets:[{label:'% of Target',data,backgroundColor:data.map(d=>d>=100?'#2d7a4f':d>=80?'#c47a0e':'#c23b3b'),borderRadius:5,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:130,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.05)'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+  }
+}
+
+// ─── ALL KPIs ─────────────────────────────────────────────────
+function renderKPIs(){
+  const kpis=state.filter?state.kpis.filter(k=>k.objectiveId===state.filter):state.kpis;
+  return `
+<div style="margin-bottom:16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+  <span style="font-size:12px;color:#888;margin-right:4px">Filter:</span>
+  <span class="chip ${!state.filter?'active':''}" onclick="setFilter(0,this)">All KPIs</span>
+  ${state.objectives.map(o=>`<span class="chip ${state.filter===o.id?'active':''}" onclick="setFilter(${o.id},this)">${o.theme}</span>`).join('')}
+</div>
+<div class="card">
+  <div style="display:grid;grid-template-columns:2fr 80px 110px 90px 100px 32px;gap:8px;padding:0 0 8px;border-bottom:1px solid var(--c-border);font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.3px">
+    <span>KPI</span><span style="text-align:center">Trend</span><span style="text-align:center">Progress</span><span style="text-align:right">Actual / Target</span><span style="text-align:right">Status</span><span></span>
+  </div>
+  ${kpis.map(k=>`
+  <div class="kpi-row" id="kr${k.id}" style="display:grid;grid-template-columns:2fr 80px 110px 90px 100px 32px;gap:8px;align-items:center;padding:10px 0">
+    <div onclick="openKPI(${k.id})" style="cursor:pointer">
+      <div class="kpi-name">${k.name}</div>
+      <div class="kpi-meta">${k.dept} · ${k.owner} · <span class="badge badge-gray" style="font-size:10px">${k.type}</span></div>
+    </div>
+    <div style="height:32px;position:relative" onclick="openKPI(${k.id})" style="cursor:pointer"><canvas id="sp${k.id}" role="img" aria-label="Trend for ${k.name}"></canvas></div>
+    <div onclick="openKPI(${k.id})" style="cursor:pointer">
+      <div class="progress-bar"><div class="progress-fill progress-${k.status}" style="width:${Math.min(k.pct,100)}%"></div></div>
+      <div style="font-size:10px;color:#999;margin-top:2px">${k.pct}% of target</div>
+    </div>
+    <div style="text-align:right;cursor:pointer" onclick="openKPI(${k.id})">
+      <div class="kpi-val">${fmt(k)}</div>
+      <div class="kpi-target-lbl">/ ${fmtT(k)}</div>
+    </div>
+    <div style="text-align:right;cursor:pointer" onclick="openKPI(${k.id})"><span class="badge ${sc(k.status)}">${sl(k.status)}</span></div>
+    <div style="text-align:center"><button title="Rename" onclick="openRenameModal(${k.id})" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px;border-radius:5px;color:#aaa;transition:color .12s" onmouseover="this.style.color='#185fa5'" onmouseout="this.style.color='#aaa'">✏️</button></div>
+  </div>`).join('')}
+</div>`;
+}
+
+function setFilter(id){state.filter=id;nav('kpis')}
+
+function initSparks(){
+  state.kpis.forEach(k=>{
+    const c=document.getElementById('sp'+k.id);
+    if(c&&window.Chart){
+      new Chart(c,{type:'line',data:{labels:['','','','','',''],datasets:[{data:k.history,borderColor:k.status==='green'?'#2d7a4f':k.status==='amber'?'#c47a0e':'#c23b3b',borderWidth:1.5,pointRadius:0,tension:.4,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}});
+    }
+  });
+}
+
+// ─── KPI DETAIL MODAL ─────────────────────────────────────────
+function openKPI(id){
+  const k=state.kpis.find(x=>x.id===id);
+  if(!k)return;
+  const obj=state.objectives.find(o=>o.id===k.objectiveId);
+  document.getElementById('modal-body').innerHTML=`
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+  <div>
+    <div class="modal-title">${k.name}</div>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <span class="badge badge-gray">${k.type}</span>
+      <span class="badge badge-blue">${k.dept}</span>
+      <span class="badge ${sc(k.status)}">${sl(k.status)}</span>
+    </div>
+  </div>
+  <button class="btn btn-sm" onclick="closeModal()">✕ Close</button>
+</div>
+<div class="grid4" style="margin-bottom:16px">
+  <div class="metric-card"><div class="metric-label">Actual</div><div class="metric-value" style="font-size:20px">${fmt(k)}</div></div>
+  <div class="metric-card"><div class="metric-label">Target</div><div class="metric-value" style="font-size:20px">${fmtT(k)}</div></div>
+  <div class="metric-card"><div class="metric-label">Performance</div><div class="metric-value ${k.pct>=100?'trend-up':k.pct>=80?'trend-flat':'trend-down'}" style="font-size:20px">${k.pct}%</div></div>
+  <div class="metric-card"><div class="metric-label">Period</div><div class="metric-value" style="font-size:16px;font-weight:500">May 2026</div></div>
+</div>
+<div class="divider"></div>
+<div style="font-size:12px;font-weight:600;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px">6-Period Trend</div>
+<div style="height:130px;position:relative;margin-bottom:16px"><canvas id="mc" role="img" aria-label="Trend for ${k.name}"></canvas></div>
+<div class="divider"></div>
+<div class="grid2" style="font-size:13px;margin-bottom:16px">
+  <div><span style="color:#888;font-size:11px;font-weight:600;text-transform:uppercase">Owner</span><div style="font-weight:500;margin-top:3px">${k.owner}</div></div>
+  <div><span style="color:#888;font-size:11px;font-weight:600;text-transform:uppercase">Department</span><div style="font-weight:500;margin-top:3px">${k.dept}</div></div>
+  <div><span style="color:#888;font-size:11px;font-weight:600;text-transform:uppercase">Objective</span><div style="font-weight:500;margin-top:3px">${obj?obj.name:'—'}</div></div>
+  <div><span style="color:#888;font-size:11px;font-weight:600;text-transform:uppercase">Initiative</span><div style="font-weight:500;margin-top:3px">${k.initiative||'—'}</div></div>
+</div>
+${k.notes?`<div style="background:var(--c-surface2);border-radius:8px;padding:12px;font-size:13px;color:#555;margin-bottom:16px;border-left:3px solid var(--c-border)"><strong style="font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:#888">Notes</strong><div style="margin-top:4px">${k.notes}</div></div>`:''}
+<div style="display:flex;gap:8px;justify-content:flex-end">
+  <button class="btn btn-danger btn-sm" onclick="deleteKPI(${k.id})">Delete</button>
+  <button class="btn" onclick="closeModal()">Close</button>
+  <button class="btn" onclick="closeModal();openRenameModal(${k.id})">Rename KPI</button>
+  <button class="btn btn-primary" onclick="closeModal();state.selectedKPI=${k.id};nav('update')">Update value →</button>
+</div>`;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  setTimeout(()=>{
+    const mc=document.getElementById('mc');
+    if(mc&&window.Chart){
+      new Chart(mc,{type:'line',data:{
+        labels:['N–5','N–4','N–3','N–2','N–1','Now'],
+        datasets:[
+          {label:'Actual',data:k.history,borderColor:k.status==='green'?'#2d7a4f':k.status==='amber'?'#c47a0e':'#c23b3b',borderWidth:2,pointRadius:3,pointBackgroundColor:k.status==='green'?'#2d7a4f':k.status==='amber'?'#c47a0e':'#c23b3b',tension:.4,fill:false},
+          {label:'Target',data:Array(6).fill(k.target),borderColor:'rgba(0,0,0,.2)',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false}
+        ]
+      },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,padding:10}}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}}}}});
+    }
+  },60);
+}
+
+function maybeCloseModal(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+function closeModal(){document.getElementById('modal-overlay').classList.add('hidden');}
+
+// ─── UPDATE KPI ───────────────────────────────────────────────
+function renderUpdate(){
+  const sel=state.selectedKPI?state.kpis.find(k=>k.id===state.selectedKPI):state.kpis[0];
+  return `
+<div class="grid2">
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">Select KPI</div>
+      <div class="form-group">
+        <label>KPI to update</label>
+        <select id="upd-kpi" onchange="previewSel(this.value)">
+          ${state.kpis.map(k=>`<option value="${k.id}" ${k.id===sel.id?'selected':''}>${k.name}</option>`).join('')}
+        </select>
+      </div>
+      <div id="kpi-preview">${kpiPreview(sel)}</div>
+    </div>
+    <div class="card">
+      <div class="section-title">New Value Entry</div>
+      <div class="form-group"><label>Reporting period</label>
+        <select><option>May 2026</option><option>April 2026</option><option>Q2 2026</option><option>Q1 2026</option></select>
+      </div>
+      <div class="form-group"><label>Actual value <span style="color:#888;font-weight:400">(${sel.prefix}...${sel.unit})</span></label>
+        <input type="number" id="upd-val" value="${sel.actual}" step="0.1">
+      </div>
+      <div class="form-group"><label>Commentary / notes</label>
+        <textarea id="upd-notes" rows="3" placeholder="Describe what drove this result, any blockers, or what's planned next...">${sel.notes||''}</textarea>
+      </div>
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:6px">
+        <button class="btn">Save draft</button>
+        <button class="btn btn-primary" onclick="submitUpdate()">Submit update →</button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">Target Configuration</div>
+      <div class="form-group"><label>Target value</label><input type="number" id="upd-target" value="${sel.target}" step="0.1"></div>
+      <div class="row" style="margin-bottom:14px">
+        <div style="flex:1"><label>At-risk threshold</label><input type="number" value="85" placeholder="% of target"></div>
+        <div style="flex:1"><label>Off-target threshold</label><input type="number" value="70" placeholder="% of target"></div>
+      </div>
+      <div class="form-group"><label>Target cadence</label>
+        <select><option>Monthly</option><option>Quarterly</option><option>Annual</option></select>
+      </div>
+      <button class="btn btn-sm" onclick="toast('Target configuration saved')">Save targets</button>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">KPI Metadata</div>
+      <div class="form-group"><label>Owner</label><input type="text" id="upd-owner" value="${sel.owner}"></div>
+      <div class="row" style="margin-bottom:14px">
+        <div style="flex:1"><label>Department</label><input type="text" id="upd-dept" value="${sel.dept}"></div>
+        <div style="flex:1"><label>KPI type</label>
+          <select id="upd-type">${['Simple','Calculated','Aggregated','Leading','Lagging'].map(t=>`<option ${t===sel.type?'selected':''}>${t}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="form-group"><label>Linked initiative</label>
+        <select id="upd-initiative"><option value="">(None)</option>${state.initiatives.map(i=>`<option ${i.name===sel.initiative?'selected':''}>${i.name}</option>`).join('')}</select>
+      </div>
+      <button class="btn btn-sm" onclick="saveMetadata()">Save metadata</button>
+    </div>
+    <div class="card">
+      <div class="section-title">Status Thresholds Preview</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--c-green-bg);border-radius:7px">
+          <span style="display:flex;align-items:center;gap:8px"><span class="status-dot status-green"></span><strong>On Target</strong></span>
+          <span style="color:var(--c-green)">≥ 100% of target</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--c-amber-bg);border-radius:7px">
+          <span style="display:flex;align-items:center;gap:8px"><span class="status-dot status-amber"></span><strong>At Risk</strong></span>
+          <span style="color:var(--c-amber)">80–99% of target</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--c-red-bg);border-radius:7px">
+          <span style="display:flex;align-items:center;gap:8px"><span class="status-dot status-red"></span><strong>Off Target</strong></span>
+          <span style="color:var(--c-red)">Below 80% of target</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function kpiPreview(k){
+  return `<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--c-surface2);border-radius:8px;border:1px solid var(--c-border)">
+    <span class="status-dot ${dc(k.status)}" style="width:10px;height:10px"></span>
+    <div style="flex:1"><div style="font-size:13px;font-weight:500">${k.name}</div><div style="font-size:11px;color:#888;margin-top:2px">${k.dept} · ${k.type}</div></div>
+    <div style="text-align:right">
+      <div style="font-size:17px;font-weight:600">${fmt(k)}</div>
+      <div style="font-size:11px;color:#999">Target: ${fmtT(k)}</div>
+    </div>
+    <span class="badge ${sc(k.status)}">${sl(k.status)}</span>
+  </div>`;
+}
+
+function previewSel(id){
+  const k=state.kpis.find(x=>x.id==id);
+  if(!k)return;
+  state.selectedKPI=k.id;
+  document.getElementById('kpi-preview').innerHTML=kpiPreview(k);
+  document.getElementById('upd-val').value=k.actual;
+  document.getElementById('upd-target').value=k.target;
+  document.getElementById('upd-notes').value=k.notes||'';
+}
+
+function submitUpdate(){
+  const id=parseInt(document.getElementById('upd-kpi').value);
+  const val=parseFloat(document.getElementById('upd-val').value);
+  const notes=document.getElementById('upd-notes').value;
+  const k=state.kpis.find(x=>x.id===id);
+  if(!k||isNaN(val))return;
+  const tgt=parseFloat(document.getElementById('upd-target').value)||k.target;
+  k.target=tgt;
+  k.actual=val;
+  k.notes=notes;
+  k.pct=Math.round(val/tgt*100);
+  k.status=k.pct>=100?'green':k.pct>=80?'amber':'red';
+  k.history=[...k.history.slice(1),val];
+  toast('✓ KPI updated — dashboard refreshed');
+  setTimeout(()=>nav('dashboard'),600);
+}
+
+// ─── OBJECTIVES ───────────────────────────────────────────────
+function renderObjectives(){
+  return `<div style="display:flex;flex-direction:column;gap:16px">
+  ${state.objectives.map(o=>{
+    const ks=state.kpis.filter(k=>k.objectiveId===o.id);
+    const avg=ks.length?Math.round(ks.reduce((s,k)=>s+k.pct,0)/ks.length):0;
+    const sts=avg>=100?'green':avg>=80?'amber':'red';
+    const g=ks.filter(k=>k.status==='green').length,a=ks.filter(k=>k.status==='amber').length,r=ks.filter(k=>k.status==='red').length;
+    return `<div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:15px;font-weight:600">${o.name}</div>
+          <div style="font-size:12px;color:#888;margin-top:3px">${o.theme}</div>
+          <div style="font-size:12px;color:#666;margin-top:4px;max-width:480px">${o.desc}</div>
+        </div>
+        <div style="text-align:right;min-width:90px">
+          <div style="font-size:22px;font-weight:600;${sts==='green'?'color:var(--c-green)':sts==='amber'?'color:var(--c-amber)':'color:var(--c-red)'}">${avg}%</div>
+          <span class="badge ${sc(sts)}">${sl(sts)}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <span class="badge badge-green">● ${g} on target</span>
+        <span class="badge badge-amber">● ${a} at risk</span>
+        <span class="badge badge-red">● ${r} off target</span>
+      </div>
+      ${ks.map(k=>`<div class="kpi-row" onclick="openKPI(${k.id})">
+        <span class="status-dot ${dc(k.status)}"></span>
+        <div style="flex:1"><div class="kpi-name">${k.name}</div><div class="kpi-meta">${k.owner}</div></div>
+        <div style="min-width:110px"><div class="progress-bar"><div class="progress-fill progress-${k.status}" style="width:${Math.min(k.pct,100)}%"></div></div><div style="font-size:10px;color:#999;margin-top:2px">${k.pct}%</div></div>
+        <div style="text-align:right;min-width:80px"><div class="kpi-val">${fmt(k)}</div><div class="kpi-target-lbl">/ ${fmtT(k)}</div></div>
+        <span class="badge ${sc(k.status)}">${sl(k.status)}</span>
+      </div>`).join('')}
+    </div>`}).join('')}
+  </div>`;
+}
+
+// ─── SCORECARDS ───────────────────────────────────────────────
+function renderScorecards(){
+  return `
+<div class="tab-bar">
+  <div class="tab active" onclick="scTab(this,'dept')">By Department</div>
+  <div class="tab" onclick="scTab(this,'theme')">By Strategic Theme</div>
+  <div class="tab" onclick="scTab(this,'bsc')">Balanced Scorecard</div>
+</div>
+<div id="sc-content">${scDept()}</div>`;
+}
+
+function scTab(el,type){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  document.getElementById('sc-content').innerHTML={dept:scDept,theme:scTheme,bsc:scBSC}[type]();
+}
+
+function scDept(){
+  const depts=[...new Set(state.kpis.map(k=>k.dept))];
+  return `<div style="display:flex;flex-direction:column;gap:14px">${depts.map(dept=>{
+    const ks=state.kpis.filter(k=>k.dept===dept);
+    const avg=Math.round(ks.reduce((s,k)=>s+k.pct,0)/ks.length);
+    const sts=avg>=100?'green':avg>=80?'amber':'red';
+    return `<div class="card card-sm">
+      <div class="scorecard-header"><h3>${dept}</h3><p>${ks.length} KPI${ks.length!==1?'s':''} · Avg ${avg}% of target · <span style="font-weight:600">${sl(sts)}</span></p></div>
+      ${ks.map(k=>`<div class="kpi-row" onclick="openKPI(${k.id})">
+        <span class="status-dot ${dc(k.status)}"></span>
+        <div style="flex:1"><div class="kpi-name">${k.name}</div><div class="kpi-meta">${k.owner} · ${k.type}</div></div>
+        <div style="min-width:90px"><div class="progress-bar"><div class="progress-fill progress-${k.status}" style="width:${Math.min(k.pct,100)}%"></div></div><div style="font-size:10px;color:#999;margin-top:2px">${k.pct}%</div></div>
+        <div style="text-align:right;min-width:75px"><div class="kpi-val">${fmt(k)}</div><div class="kpi-target-lbl">/ ${fmtT(k)}</div></div>
+        <span class="badge ${sc(k.status)}">${sl(k.status)}</span>
+      </div>`).join('')}
+    </div>`}).join('')}</div>`;
+}
+
+function scTheme(){
+  return `<div style="display:flex;flex-direction:column;gap:14px">${state.objectives.map(o=>{
+    const ks=state.kpis.filter(k=>k.objectiveId===o.id);
+    const avg=ks.length?Math.round(ks.reduce((s,k)=>s+k.pct,0)/ks.length):0;
+    const sts=avg>=100?'green':avg>=80?'amber':'red';
+    return `<div class="card card-sm">
+      <div class="scorecard-header"><h3>${o.name}</h3><p>${o.theme} · ${ks.length} KPIs · Avg ${avg}% · <span style="font-weight:600">${sl(sts)}</span></p></div>
+      ${ks.map(k=>`<div class="kpi-row" onclick="openKPI(${k.id})">
+        <span class="status-dot ${dc(k.status)}"></span>
+        <div style="flex:1"><div class="kpi-name">${k.name}</div><div class="kpi-meta">${k.owner}</div></div>
+        <div style="text-align:right;min-width:75px"><div class="kpi-val">${fmt(k)}</div></div>
+        <span class="badge ${sc(k.status)}">${sl(k.status)}</span>
+      </div>`).join('')}
+    </div>`}).join('')}</div>`;
+}
+
+function scBSC(){
+  const perspectives=[
+    {label:'Financial',objIds:[1]},
+    {label:'Customer',objIds:[2]},
+    {label:'Internal Process',objIds:[3]},
+    {label:'Learning & Growth',objIds:[4]}
+  ];
+  return `<div class="grid2">${perspectives.map(p=>{
+    const ks=state.kpis.filter(k=>p.objIds.includes(k.objectiveId));
+    const avg=ks.length?Math.round(ks.reduce((s,k)=>s+k.pct,0)/ks.length):0;
+    const sts=avg>=100?'green':avg>=80?'amber':'red';
+    return `<div class="card card-sm">
+      <div class="scorecard-header"><h3>${p.label}</h3><p>${ks.length} KPIs · ${avg}% avg · ${sl(sts)}</p></div>
+      ${ks.map(k=>`<div class="kpi-row" onclick="openKPI(${k.id})">
+        <span class="status-dot ${dc(k.status)}"></span>
+        <div style="flex:1"><div class="kpi-name" style="font-size:12px">${k.name}</div><div class="kpi-meta">${k.owner}</div></div>
+        <span class="badge ${sc(k.status)}" style="font-size:10px">${sl(k.status)}</span>
+      </div>`).join('')}
+    </div>`}).join('')}</div>`;
+}
+
+// ─── INITIATIVES ──────────────────────────────────────────────
+function renderInitiatives(){
+  return `<div style="display:flex;flex-direction:column;gap:14px">
+  ${state.initiatives.map(i=>{
+    const linkedKPIs=state.kpis.filter(k=>i.kpis.includes(k.id));
+    return `<div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-size:15px;font-weight:600">${i.name}</div>
+          <div style="font-size:12px;color:#888;margin-top:3px">${i.dept} · Lead: ${i.owner} · Due: ${i.due}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:600">${i.completion}%</div>
+          <span class="badge ${sc(i.status)}">${sl(i.status)}</span>
+        </div>
+      </div>
+      <div class="initiative-bar"><div class="progress-fill progress-${i.status}" style="width:${i.completion}%"></div></div>
+      <div style="font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.3px;margin:12px 0 6px">Linked KPIs</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${linkedKPIs.map(k=>`<span onclick="openKPI(${k.id})" style="cursor:pointer" class="badge ${sc(k.status)}"><span class="status-dot ${dc(k.status)}" style="margin-right:4px;width:6px;height:6px"></span>${k.name}</span>`).join('')}
+      </div>
+    </div>`}).join('')}
+  </div>`;
+}
+
+// ─── CREATE KPI ───────────────────────────────────────────────
+function renderCreate(){
+  return `
+<div class="grid2">
+  <div>
+    <div class="card">
+      <div class="section-title">KPI Details</div>
+      <div class="form-group"><label>KPI Name <span style="color:var(--c-red)">*</span></label><input type="text" id="new-name" placeholder="e.g. Monthly Recurring Revenue"></div>
+      <div class="form-group"><label>Description</label><textarea id="new-desc" rows="2" placeholder="What does this KPI measure and why does it matter?"></textarea></div>
+      <div class="row" style="margin-bottom:14px">
+        <div style="flex:1"><label>Owner <span style="color:var(--c-red)">*</span></label><input type="text" id="new-owner" placeholder="Full name"></div>
+        <div style="flex:1"><label>Department <span style="color:var(--c-red)">*</span></label><input type="text" id="new-dept" placeholder="e.g. Finance"></div>
+      </div>
+      <div class="form-group"><label>Strategic Objective <span style="color:var(--c-red)">*</span></label>
+        <select id="new-obj">
+          ${state.objectives.map(o=>`<option value="${o.id}">${o.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>KPI Type</label>
+        <select id="new-type">
+          ${['Simple','Calculated','Aggregated','Leading','Lagging'].map(t=>`<option>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Linked Initiative</label>
+        <select id="new-initiative">
+          <option value="">(None)</option>
+          ${state.initiatives.map(i=>`<option>${i.name}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">Target & Measurement</div>
+      <div class="row" style="margin-bottom:14px">
+        <div style="flex:1"><label>Current Actual Value</label><input type="number" id="new-actual" placeholder="0" step="0.1"></div>
+        <div style="flex:1"><label>Target Value <span style="color:var(--c-red)">*</span></label><input type="number" id="new-target" placeholder="0" step="0.1"></div>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <div style="flex:1"><label>Unit (suffix)</label><input type="text" id="new-unit" placeholder="e.g. % or pts or hrs"></div>
+        <div style="flex:1"><label>Prefix</label><input type="text" id="new-prefix" placeholder="e.g. $"></div>
+      </div>
+      <div class="form-group"><label>Target Cadence</label>
+        <select id="new-cadence"><option>Monthly</option><option>Quarterly</option><option>Annual</option></select>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">Status Thresholds</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--c-green-bg);border-radius:7px">
+          <span style="display:flex;align-items:center;gap:8px"><span class="status-dot status-green"></span><strong>On Target</strong></span>
+          <span style="color:var(--c-green)">≥ 100% of target</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--c-amber-bg);border-radius:7px">
+          <span style="display:flex;align-items:center;gap:8px"><span class="status-dot status-amber"></span><strong>At Risk</strong></span>
+          <span style="color:var(--c-amber)">80–99% of target</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--c-red-bg);border-radius:7px">
+          <span style="display:flex;align-items:center;gap:8px"><span class="status-dot status-red"></span><strong>Off Target</strong></span>
+          <span style="color:var(--c-red)">Below 80% of target</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Preview</div>
+      <div id="create-preview" style="color:#aaa;font-size:13px;text-align:center;padding:16px 0">Fill in the form to see a preview</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn" onclick="nav('kpis')">Cancel</button>
+        <button class="btn btn-primary" onclick="createKPI()">Create KPI →</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const fields=['new-name','new-actual','new-target','new-unit','new-prefix','new-owner','new-dept'];
+  fields.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('input',updateCreatePreview);
+  });
+})();
+<\/script>`;
+}
+
+function updateCreatePreview(){
+  const name=document.getElementById('new-name').value||'Unnamed KPI';
+  const actual=parseFloat(document.getElementById('new-actual').value)||0;
+  const target=parseFloat(document.getElementById('new-target').value)||0;
+  const unit=document.getElementById('new-unit').value||'';
+  const prefix=document.getElementById('new-prefix').value||'';
+  const owner=document.getElementById('new-owner').value||'—';
+  const dept=document.getElementById('new-dept').value||'—';
+  const pct=target?Math.round(actual/target*100):0;
+  const sts=pct>=100?'green':pct>=80?'amber':'red';
+  const p=document.getElementById('create-preview');
+  if(p){p.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--c-surface2);border-radius:8px;border:1px solid var(--c-border)">
+    <span class="status-dot ${dc(sts)}" style="width:10px;height:10px"></span>
+    <div style="flex:1"><div style="font-size:13px;font-weight:500">${name}</div><div style="font-size:11px;color:#888;margin-top:2px">${dept} · ${owner}</div></div>
+    <div style="text-align:right"><div style="font-size:16px;font-weight:600">${prefix}${actual}${unit}</div><div style="font-size:11px;color:#999">/ ${prefix}${target}${unit}</div></div>
+    <span class="badge ${sc(sts)}">${sl(sts)}</span>
+  </div>`;}
+}
+
+function createKPI(){
+  const name=(document.getElementById('new-name').value||'').trim();
+  const target=parseFloat(document.getElementById('new-target').value);
+  const owner=(document.getElementById('new-owner').value||'').trim();
+  const dept=(document.getElementById('new-dept').value||'').trim();
+  if(!name){toast('⚠ KPI name is required');return;}
+  if(!owner){toast('⚠ Owner is required');return;}
+  if(!dept){toast('⚠ Department is required');return;}
+  if(isNaN(target)||target<=0){toast('⚠ A valid target value is required');return;}
+  const actual=parseFloat(document.getElementById('new-actual').value)||0;
+  const unit=document.getElementById('new-unit').value||'';
+  const prefix=document.getElementById('new-prefix').value||'';
+  const objectiveId=parseInt(document.getElementById('new-obj').value)||1;
+  const type=document.getElementById('new-type').value||'Simple';
+  const initiative=document.getElementById('new-initiative').value||null;
+  const pct=Math.round(actual/target*100);
+  const status=pct>=100?'green':pct>=80?'amber':'red';
+  const newId=Math.max(...state.kpis.map(k=>k.id))+1;
+  state.kpis.push({id:newId,name,dept,owner,type,status,actual,target,unit,prefix,pct,history:[actual,actual,actual,actual,actual,actual],objectiveId,initiative:initiative||null,notes:document.getElementById('new-desc').value||''});
+  toast('✓ KPI created successfully');
+  setTimeout(()=>nav('kpis'),400);
+}
+
+function saveMetadata(){
+  const id=parseInt(document.getElementById('upd-kpi').value);
+  const k=state.kpis.find(x=>x.id===id);
+  if(!k)return;
+  const owner=(document.getElementById('upd-owner').value||'').trim();
+  const dept=(document.getElementById('upd-dept').value||'').trim();
+  const type=document.getElementById('upd-type').value;
+  const initiative=document.getElementById('upd-initiative').value||null;
+  if(!owner){toast('⚠ Owner cannot be empty');return;}
+  if(!dept){toast('⚠ Department cannot be empty');return;}
+  k.owner=owner;k.dept=dept;k.type=type;k.initiative=initiative||null;
+  toast('✓ KPI metadata saved');
+  document.getElementById('kpi-preview').innerHTML=kpiPreview(k);
+}
+
+// ─── RENAME KPI ───────────────────────────────────────────────
+function openRenameModal(id){
+  const k=state.kpis.find(x=>x.id===id);
+  if(!k)return;
+  document.getElementById('modal-body').innerHTML=`
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+  <div class="modal-title">Edit KPI Details</div>
+  <button class="btn btn-sm" onclick="closeModal()">✕</button>
+</div>
+<div class="form-group">
+  <label>KPI Name <span style="color:var(--c-red)">*</span></label>
+  <input type="text" id="rename-val" value="${k.name}">
+</div>
+<div class="form-group">
+  <label>Department <span style="color:var(--c-red)">*</span></label>
+  <input type="text" id="rename-dept" value="${k.dept}" placeholder="e.g. Finance">
+</div>
+<div class="form-group">
+  <label>Owner</label>
+  <input type="text" id="rename-owner" value="${k.owner}" placeholder="Full name">
+</div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+  <button class="btn" onclick="closeModal()">Cancel</button>
+  <button class="btn btn-primary" onclick="saveRename(${id})">Save changes →</button>
+</div>`;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  setTimeout(()=>{const i=document.getElementById('rename-val');if(i){i.focus();i.select();}},60);
+}
+
+function saveRename(id){
+  const val=(document.getElementById('rename-val').value||'').trim();
+  const dept=(document.getElementById('rename-dept').value||'').trim();
+  const owner=(document.getElementById('rename-owner').value||'').trim();
+  if(!val){toast('⚠ Name cannot be empty');return;}
+  if(!dept){toast('⚠ Department cannot be empty');return;}
+  const k=state.kpis.find(x=>x.id===id);
+  if(k){k.name=val;k.dept=dept;if(owner)k.owner=owner;}
+  closeModal();
+  toast('✓ KPI details saved');
+  nav(state.page);
+}
+
+function deleteKPI(id){
+  if(!confirm('Delete this KPI? This cannot be undone.'))return;
+  state.kpis=state.kpis.filter(k=>k.id!==id);
+  closeModal();
+  toast('KPI deleted');
+  nav('kpis');
+}
+
+// ─── TOAST ────────────────────────────────────────────────────
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.opacity=1;
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity=0,2500);
+}
+
+// Boot
+nav('dashboard');
+</script>
+</body>
+</html>
